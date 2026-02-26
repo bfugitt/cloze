@@ -245,12 +245,21 @@
             let rawText = "";
 
             try {
-                // Try fetching from the same directory (e.g., your GitHub Pages root)
-                const response = await fetch(`${level}.txt`);
-                if (!response.ok) throw new Error("File not found, using fallback.");
+                // Add a cache-buster timestamp to force GitHub Pages to serve the newest file
+                const timestamp = new Date().getTime();
+                const response = await fetch(`${level}.txt?v=${timestamp}`);
+                
+                if (!response.ok) throw new Error("File not found on server.");
+                
                 rawText = await response.text();
+                
+                // Check if GitHub Pages returned a 404 HTML page instead of the raw text
+                if (rawText.trim().toLowerCase().startsWith('<!doctype') || rawText.toLowerCase().includes('<html')) {
+                    throw new Error("Received an HTML error page instead of the text file.");
+                }
+                
             } catch (error) {
-                console.log("Using built-in fallback text for: " + level);
+                console.log("Fetch failed or returned HTML. Using built-in fallback text for: " + level, error);
                 rawText = fallbacks[level];
             }
 
@@ -262,18 +271,50 @@
         // ==========================================
         
         function processText(text) {
-            // Split by newlines to get paragraphs
-            const paragraphs = text.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
+            // 1. Remove hidden BOM and zero-width characters
+            let cleanText = text.replace(/[\uFEFF\u200B]/g, '');
+
+            // 2. Split by double-newlines (blank lines) to find real paragraphs
+            const rawParagraphs = cleanText.split(/\n\s*\n/).map(p => {
+                return p.replace(/\s+/g, ' ').trim();
+            }).filter(p => p.length > 0);
             
-            // Filter valid paragraphs
-            const validParagraphs = paragraphs.filter(p => {
-                const startsWithCapital = /^[A-Z"']/.test(p);
-                const endsWithPunctuation = /[.?!]["']?$/.test(p);
-                return p.length >= CONFIG.minParagraphLength && startsWithCapital && endsWithPunctuation;
+            // 3. Filter valid paragraphs strictly
+            const validParagraphs = rawParagraphs.filter(p => {
+                // Rule A: Long enough
+                if (p.length < CONFIG.minParagraphLength) return false;
+                
+                // Rule B: Starts with a capital letter (find the first actual letter to bypass quotes/spaces)
+                const firstLetter = p.match(/[a-zA-Z]/);
+                if (!firstLetter || firstLetter[0] !== firstLetter[0].toUpperCase()) return false;
+                
+                // Rule C: Ends with punctuation (allow trailing quotes or spaces)
+                if (!/[.?!][^a-zA-Z0-9]*$/.test(p)) return false;
+
+                // Rule D: Has enough unique long words to actually play the game
+                const tokens = p.split(/(\b[a-zA-Z]+\b)/);
+                const uniqueLongWords = new Set();
+                tokens.forEach(t => {
+                    if (/^[a-zA-Z]+$/.test(t) && t.length >= CONFIG.minWordLength) {
+                        uniqueLongWords.add(t.toLowerCase());
+                    }
+                });
+                
+                return uniqueLongWords.size >= CONFIG.wordsToRemove;
             });
 
             if (validParagraphs.length === 0) {
-                document.getElementById('story-container').innerHTML = '<p class="text-red-500">Error: Could not find a valid paragraph in the text file.</p>';
+                document.getElementById('story-container').innerHTML = `
+                    <div class="text-center bg-rose-50 p-6 rounded-2xl border-2 border-rose-200">
+                        <p class="text-rose-600 font-extrabold text-2xl mb-2">Oops! Couldn't find a valid paragraph.</p>
+                        <p class="text-slate-600 text-lg mb-4">The text file loaded, but no paragraphs met the game's strict criteria.</p>
+                        <ul class="text-slate-500 text-sm text-left list-disc list-inside bg-white p-4 rounded-xl border border-rose-100">
+                            <li>Must be at least ${CONFIG.minParagraphLength} characters long.</li>
+                            <li>Must start with a capital letter.</li>
+                            <li>Must end with a period, question mark, or exclamation point.</li>
+                            <li>Must contain at least ${CONFIG.wordsToRemove} unique words that are ${CONFIG.minWordLength}+ letters long.</li>
+                        </ul>
+                    </div>`;
                 return;
             }
 
@@ -315,9 +356,9 @@
                 if (selectedIndices.length === CONFIG.wordsToRemove) break;
             }
 
+            // Fallback safety (should rarely hit now due to processText filtering)
             if (selectedIndices.length < CONFIG.wordsToRemove) {
-                // Fallback if paragraph doesn't have enough unique long words
-                startNewGame(); 
+                document.getElementById('story-container').innerHTML = `<p class="text-rose-500 text-center font-bold">Error generating blanks. Try skipping.</p>`;
                 return;
             }
 
