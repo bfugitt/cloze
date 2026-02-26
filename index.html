@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Story Weaver | ELA Reading Game</title>
-    <!-- Tailwind CSS for styling -->
+    <title>Story Weaver</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for a friendly, readable look -->
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Nunito', sans-serif;
-            background-color: #f0fdf4; /* Very light organic green */
+            background-color: #f0fdf4;
             color: #334155;
         }
         
@@ -23,7 +20,7 @@
             height: 2.5rem;
             margin: 0 0.25rem;
             vertical-align: middle;
-            border-bottom: 3px dashed #10b981; /* Emerald green */
+            border-bottom: 3px dashed #10b981;
             background-color: #ecfdf5;
             border-radius: 0.375rem 0.375rem 0 0;
             transition: all 0.2s ease;
@@ -32,61 +29,70 @@
         }
 
         .drop-zone.active-target {
-            background-color: #d1fae5;
-            border-bottom-color: #059669;
-        }
-
-        .draggable-word {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.25rem 0.75rem;
-            background-color: white;
-            border: 2px solid #a7f3d0;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            font-weight: 700;
-            color: #047857;
-            cursor: grab;
-            user-select: none;
-            transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
-            height: 100%; /* Fill drop zone if inside */
-            min-height: 2.25rem;
-            box-sizing: border-box;
-        }
-
-        .draggable-word:active {
-            cursor: grabbing;
-            transform: scale(0.95);
-        }
-
-        .draggable-word.selected-for-tap {
-            background-color: #fef08a; /* Soft yellow highlight */
-            border-color: #eab308;
-            box-shadow: 0 0 0 4px rgba(253, 224, 71, 0.4);
+            border-bottom-color: #f59e0b;
+            background-color: #fef3c7;
             transform: scale(1.05);
         }
 
-        .draggable-word.locked {
-            background-color: #d1fae5;
-            border-color: #10b981;
-            color: #065f46;
-            cursor: default;
-            box-shadow: none;
+        .word-bank-item {
+            display: inline-block;
+            padding: 0.5rem 1.25rem;
+            margin: 0.5rem;
+            background-color: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 9999px;
+            cursor: grab;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
         }
 
-        /* Medal Animations */
-        @keyframes pop {
-            0% { transform: scale(0.5); opacity: 0; }
-            80% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
+        .word-bank-item:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .medal-animate {
-            animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+
+        .word-bank-item.used {
+            opacity: 0.5;
+            pointer-events: none;
+            background-color: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+
+        .word-bank-item.selected {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            transform: scale(1.1);
+            box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);
+        }
+
+        .correct-drop {
+            border-bottom: 3px solid #10b981;
+            background-color: #d1fae5;
+            color: #065f46;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .tooltip:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #334155;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+            margin-top: 5px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-8 px-4">
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center relative">
 
     <!-- Header Section -->
     <header class="w-full max-w-4xl flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-green-100">
@@ -95,67 +101,69 @@
             <h1 class="text-3xl font-extrabold text-emerald-800 tracking-tight">Story Weaver</h1>
         </div>
         
-        <div class="flex items-center gap-4">
-            <button onclick="toggleHistory()" class="p-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-full transition-colors tooltip" title="Reading History">
+        <div class="flex items-center gap-4 flex-wrap justify-end relative">
+            <button onclick="toggleHistory()" class="p-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-full transition-colors tooltip relative" title="Reading History">
                 <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Zm-96-72a72,72,0,1,0,72,72A72,72,0,0,0,128,56Zm40,64H136V80a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8h40a8,8,0,0,0,0-16Z"></path></svg>
             </button>
-            <label for="level-select" class="font-bold text-slate-600">Reading Level:</label>
-            <select id="level-select" class="bg-emerald-50 border-2 border-emerald-200 text-emerald-800 text-lg rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2 cursor-pointer outline-none transition-colors" onchange="startNewGame()">
-                <option value="level1">Level 1 (Easy)</option>
-                <option value="level2">Level 2 (Medium)</option>
-                <option value="level3">Level 3 (Challenge)</option>
-            </select>
+            
+            <div class="flex items-center gap-2">
+                <label for="level-select" class="font-bold text-slate-600 hidden md:inline">Level:</label>
+                <select id="level-select" class="bg-emerald-50 border-2 border-emerald-200 text-emerald-800 font-bold rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-2 cursor-pointer outline-none transition-colors" onchange="startNewGame()">
+                    <option value="level1">Level 1 (Easy)</option>
+                    <option value="level2">Level 2 (Medium)</option>
+                    <option value="level3">Level 3 (Hard)</option>
+                </select>
+            </div>
         </div>
     </header>
 
     <!-- Main Game Area -->
-    <main class="w-full max-w-4xl bg-white p-6 md:p-10 rounded-3xl shadow-lg border-t-4 border-emerald-500 relative">
+    <main class="w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden relative">
         
-        <!-- Status Bar -->
-        <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-            <div id="tries-container" class="flex gap-1 items-center">
-                <span class="font-bold text-slate-500 mr-2">Tries Left:</span>
-                <!-- Hearts will be injected here -->
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-100 h-2">
+            <div id="progress-bar" class="bg-emerald-500 h-2 transition-all duration-500" style="width: 100%;"></div>
+        </div>
+
+        <div class="p-6 md:p-10">
+            <!-- Instructions & Hearts -->
+            <div class="flex justify-between items-center mb-8">
+                <p class="text-slate-500 font-semibold text-lg flex items-center gap-2">
+                    <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Drag words into the correct blanks.
+                </p>
+                <div id="hearts-container" class="flex gap-2 text-rose-500">
+                    <!-- Hearts injected here -->
+                </div>
             </div>
-            <div id="message-area" class="text-lg font-bold text-emerald-600 transition-opacity duration-300 opacity-0">
-                Great job!
+
+            <!-- Paragraph Container -->
+            <div id="story-container" class="text-xl leading-loose md:text-2xl md:leading-loose text-slate-700 font-medium mb-12 min-h-[150px]">
+                Loading your story...
+            </div>
+
+            <!-- Word Bank -->
+            <div class="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 min-h-[120px]">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Word Bank</h3>
+                <div id="word-bank" class="flex flex-wrap gap-2 justify-center">
+                    <!-- Words generated here -->
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-8 flex justify-center gap-4">
+                <button onclick="startNewGame()" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-white border-2 border-slate-200 hover:bg-slate-50 transition-colors">
+                    Skip Passage
+                </button>
+                <button id="btn-check" onclick="checkAnswers()" class="px-8 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200 transition-all transform hover:-translate-y-1">
+                    Check Answers
+                </button>
             </div>
         </div>
 
-        <!-- Story Paragraph Container -->
-        <div id="story-container" class="text-xl md:text-2xl leading-[2.5] md:leading-[2.5] text-slate-700 mb-10 min-h-[150px]">
-            <!-- Text and drop zones generated by JS will go here -->
-            <div class="flex justify-center items-center h-full text-slate-400 animate-pulse">
-                Loading story...
-            </div>
-        </div>
-
-        <!-- Word Bank -->
-        <div class="bg-amber-50 rounded-2xl p-6 border-2 border-amber-200 shadow-inner min-h-[120px]">
-            <h2 class="text-sm font-bold text-amber-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm40-88a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,128Z"></path></svg>
-                Word Bank (Drag or Tap to move)
-            </h2>
-            <div id="word-bank" class="flex flex-wrap gap-4 min-h-[3rem]" onclick="handleBankClick(event)" ondragover="allowDrop(event)" ondrop="dropBank(event)">
-                <!-- Draggable words generated by JS will go here -->
-            </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mt-8 flex justify-end gap-4">
-            <button id="btn-skip" onclick="startNewGame()" class="px-6 py-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">
-                Try a Different Text
-            </button>
-            <button id="btn-check" onclick="checkAnswers()" class="px-8 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
-                Check Answers
-            </button>
-        </div>
-
-        <!-- Medal Overlay (Hidden by default) -->
+        <!-- Medal Overlay -->
         <div id="medal-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl z-50 hidden flex-col items-center justify-center p-8 text-center">
-            <div id="medal-icon" class="w-40 h-40 mb-6 drop-shadow-xl">
-                <!-- SVG Medal injected via JS -->
-            </div>
+            <div id="medal-icon" class="w-40 h-40 mb-6 drop-shadow-xl"></div>
             <h2 id="medal-title" class="text-4xl font-extrabold text-slate-800 mb-4">You did it!</h2>
             <p id="medal-desc" class="text-xl text-slate-600 mb-8 max-w-md">You successfully reconstructed the paragraph.</p>
             <button onclick="startNewGame()" class="px-8 py-4 rounded-xl font-bold text-white text-xl bg-emerald-500 hover:bg-emerald-600 shadow-lg transition-all">
@@ -163,7 +171,7 @@
             </button>
         </div>
 
-        <!-- History Modal (Hidden by default) -->
+        <!-- History Modal -->
         <div id="history-modal" class="absolute inset-0 bg-white/95 backdrop-blur-sm rounded-3xl z-50 hidden flex-col p-6 md:p-10">
             <div class="flex justify-between items-center mb-6 border-b border-slate-200 pb-4">
                 <h2 class="text-3xl font-extrabold text-emerald-800 flex items-center gap-2">
@@ -179,13 +187,19 @@
                 <!-- History items injected here -->
             </div>
             
-            <div class="flex justify-end pt-4 border-t border-slate-200">
-                <button onclick="clearHistory()" class="px-6 py-2 rounded-xl font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 transition-colors mr-auto">
+            <div class="flex justify-between items-center pt-4 border-t border-slate-200 flex-wrap gap-4">
+                <button onclick="clearHistory()" class="px-6 py-3 rounded-xl font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 transition-colors">
                     Clear History
                 </button>
-                <button onclick="toggleHistory()" class="px-8 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-md transition-all">
-                    Close
-                </button>
+                <div class="flex gap-3">
+                    <button onclick="toggleHistory()" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all">
+                        Close
+                    </button>
+                    <button id="btn-submit-scores" onclick="submitScores()" class="px-6 py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 shadow-md transition-all flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        Submit to Teacher
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -196,73 +210,58 @@
         // CONFIGURATION & STATE
         // ==========================================
         const CONFIG = {
-            minWordLength: 5,   // Only extract words with 5 or more letters
+            // STEP 1: Paste your Google Web App URL here!
+            scriptUrl: "YOUR_GOOGLE_SCRIPT_URL_HERE", 
+            
+            minWordLength: 5,   
             maxTries: 3,
             levels: {
-                level1: {
-                    minParagraphLength: 100,
-                    maxParagraphLength: 350,
-                    wordsToRemove: 3
-                },
-                level2: {
-                    minParagraphLength: 200,
-                    maxParagraphLength: 600,
-                    wordsToRemove: 5
-                },
-                level3: {
-                    minParagraphLength: 400,
-                    maxParagraphLength: 1200,
-                    wordsToRemove: 7
-                }
+                level1: { minParagraphLength: 100, maxParagraphLength: 350, wordsToRemove: 3 },
+                level2: { minParagraphLength: 200, maxParagraphLength: 600, wordsToRemove: 5 },
+                level3: { minParagraphLength: 400, maxParagraphLength: 1200, wordsToRemove: 7 }
             }
         };
 
         let state = {
-            currentLevelId: 'level1', // Tracks current active level ID
-            currentParagraph: "", // Store the active paragraph text
-            answers: {},        // Stores { index: "correct_word" }
+            currentLevelId: 'level1',
+            currentParagraph: "",
+            answers: {},
             triesLeft: 3,
-            gameState: 'playing', // 'playing', 'won', 'lost'
-            selectedWordId: null // Used for Tap-to-move accessibility
+            gameState: 'playing',
+            selectedWordId: null
         };
 
-        // Fallback texts if GitHub .txt files aren't found yet
         const fallbacks = {
             level1: `Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do. Once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it. What is the use of a book without pictures or conversations, thought Alice.\n\nSuddenly a White Rabbit with pink eyes ran close by her. There was nothing so very remarkable in that, nor did Alice think it so very much out of the way to hear the Rabbit say to itself, "Oh dear! Oh dear! I shall be late!"`,
-            
             level2: `Dorothy lived in the midst of the great Kansas prairies, with Uncle Henry, who was a farmer, and Aunt Em, who was the farmer's wife. Their house was small, for the lumber to build it had to be carried by wagon many miles. There were four walls, a floor and a roof, which made one room. This room contained a rusty looking cookstove, a cupboard for the dishes, a table, three or four chairs, and the beds.\n\nWhen Dorothy stood in the doorway and looked around, she could see nothing but the great gray prairie on every side. Not a tree nor a house broke the broad sweep of flat country that reached to the edge of the sky in all directions.`,
-            
-            level3: `I remember him as if it were yesterday, as he came plodding to the inn door, his sea-chest following behind him in a hand-barrow. He was a tall, strong, heavy, nut-brown man, his tarry pigtail falling over the shoulder of his soiled blue coat. His hands were ragged and scarred, with black, broken nails, and the sabre cut across one cheek, a dirty, livid white.\n\nHe looked around the cove whistling to himself as he did so, and then broke out in that old sea-song that he sang so often afterwards. "Fifteen men on the dead man's chest, Yo-ho-ho, and a bottle of rum!"`
+            level3: `Squire Trelawney, Dr. Livesey, and the rest of these gentlemen having asked me to write down the whole particulars about Treasure Island, from the beginning to the end, keeping nothing back but the bearings of the island, and that only because there is still treasure not yet lifted, I take up my pen in the year of grace 1700 and something. I go back to the time when my father kept the Admiral Benbow inn and the brown old seaman with the sabre cut first took up his lodging under our roof.\n\nI remember him as if it were yesterday, as he came plodding to the inn door, his sea-chest following behind him in a hand-barrow.`
+        };
+
+        window.onload = () => {
+            startNewGame();
         };
 
         // ==========================================
         // INITIALIZATION & FILE FETCHING
         // ==========================================
-        
-        // Starts on load
-        window.onload = () => {
-            startNewGame();
-        };
 
         async function startNewGame() {
             hideMedal();
+            state.answers = {};
             state.triesLeft = CONFIG.maxTries;
             state.gameState = 'playing';
-            state.answers = {};
-            state.selectedWordId = null;
-            updateTriesUI();
-            showMessage("", "hidden");
+            updateHearts();
+            document.getElementById('progress-bar').style.width = '100%';
             
-            document.getElementById('story-container').innerHTML = '<div class="flex justify-center items-center h-full text-slate-400 animate-pulse">Loading story...</div>';
+            document.getElementById('story-container').innerHTML = '<p class="text-slate-400 text-center animate-pulse">Turning pages...</p>';
             document.getElementById('word-bank').innerHTML = '';
             document.getElementById('btn-check').style.display = 'block';
 
             const level = document.getElementById('level-select').value;
-            state.currentLevelId = level; // Store active level id
+            state.currentLevelId = level;
             let rawText = "";
 
             try {
-                // Add a cache-buster timestamp to force GitHub Pages to serve the newest file
                 const timestamp = new Date().getTime();
                 const response = await fetch(`${level}.txt?v=${timestamp}`);
                 
@@ -270,7 +269,6 @@
                 
                 rawText = await response.text();
                 
-                // Check if GitHub Pages returned a 404 HTML page instead of the raw text
                 if (rawText.trim().toLowerCase().startsWith('<!doctype') || rawText.toLowerCase().includes('<html')) {
                     throw new Error("Received an HTML error page instead of the text file.");
                 }
@@ -289,28 +287,20 @@
         
         function processText(text) {
             const levelConfig = CONFIG.levels[state.currentLevelId];
-
-            // 1. Remove hidden BOM and zero-width characters
             let cleanText = text.replace(/[\uFEFF\u200B]/g, '');
 
-            // 2. Split by double-newlines (blank lines) to find real paragraphs
             const rawParagraphs = cleanText.split(/\n\s*\n/).map(p => {
                 return p.replace(/\s+/g, ' ').trim();
             }).filter(p => p.length > 0);
             
-            // 3. Filter valid paragraphs strictly
             const validParagraphs = rawParagraphs.filter(p => {
-                // Rule A: Length within configured bounds for this level
                 if (p.length < levelConfig.minParagraphLength || p.length > levelConfig.maxParagraphLength) return false;
                 
-                // Rule B: Starts with a capital letter (find the first actual letter to bypass quotes/spaces)
                 const firstLetter = p.match(/[a-zA-Z]/);
                 if (!firstLetter || firstLetter[0] !== firstLetter[0].toUpperCase()) return false;
                 
-                // Rule C: Ends with punctuation (allow trailing quotes or spaces)
                 if (!/[.?!][^a-zA-Z0-9]*$/.test(p)) return false;
 
-                // Rule D: Has enough unique long words to actually play the game
                 const tokens = p.split(/(\b[a-zA-Z]+\b)/);
                 const uniqueLongWords = new Set();
                 tokens.forEach(t => {
@@ -337,29 +327,22 @@
                 return;
             }
 
-            // Pick a random valid paragraph
             const selectedParagraph = validParagraphs[Math.floor(Math.random() * validParagraphs.length)];
-            
             buildGameEngine(selectedParagraph);
         }
 
         function buildGameEngine(paragraph) {
             state.currentParagraph = paragraph;
             const levelConfig = CONFIG.levels[state.currentLevelId];
-            
-            // Smart tokenization: keeps punctuation separate from words
-            // (\b[a-zA-Z]+\b) captures words, the rest is split nicely
             const tokens = paragraph.split(/(\b[a-zA-Z]+\b)/);
-            
-            // Find indices of candidate words (length >= config)
             const candidateIndices = [];
+            
             tokens.forEach((token, index) => {
                 if (/^[a-zA-Z]+$/.test(token) && token.length >= CONFIG.minWordLength) {
                     candidateIndices.push(index);
                 }
             });
 
-            // Ensure unique words are selected
             const shuffledIndices = shuffleArray(candidateIndices);
             const selectedIndices = [];
             const selectedWordsLower = new Set();
@@ -376,7 +359,6 @@
                 if (selectedIndices.length === levelConfig.wordsToRemove) break;
             }
 
-            // Fallback safety (should rarely hit now due to processText filtering)
             if (selectedIndices.length < levelConfig.wordsToRemove) {
                 document.getElementById('story-container').innerHTML = `<p class="text-rose-500 text-center font-bold">Error generating blanks. Try skipping.</p>`;
                 return;
@@ -387,7 +369,6 @@
 
             tokens.forEach((token, index) => {
                 if (selectedIndices.includes(index)) {
-                    // Create a blank/drop zone with lowercased words
                     const lowerToken = token.toLowerCase();
                     state.answers[index] = lowerToken;
                     wordsToBank.push({ id: `word-${index}`, text: lowerToken });
@@ -401,177 +382,115 @@
                         ondragleave="dragLeave(event)"
                         ondrop="dropZone(event)"></span>`;
                 } else {
-                    htmlOutput += token; // Normal text or punctuation
+                    htmlOutput += token;
                 }
             });
 
             document.getElementById('story-container').innerHTML = htmlOutput;
 
-            // Build Word Bank
-            const wordBankContainer = document.getElementById('word-bank');
-            wordBankContainer.innerHTML = '';
+            const shuffledBank = shuffleArray(wordsToBank);
+            const bankHtml = shuffledBank.map(w => 
+                `<div id="${w.id}" class="word-bank-item" 
+                    draggable="true" 
+                    onclick="handleWordClick(event)"
+                    ondragstart="dragStart(event)" 
+                    ondragend="dragEnd(event)">
+                    ${w.text}
+                </div>`
+            ).join('');
             
-            shuffleArray(wordsToBank).forEach(wordObj => {
-                const wordEl = document.createElement('div');
-                wordEl.className = 'draggable-word';
-                wordEl.id = wordObj.id;
-                wordEl.draggable = true;
-                wordEl.textContent = wordObj.text;
-                
-                // Drag Events
-                wordEl.ondragstart = handleDragStart;
-                wordEl.ondragend = handleDragEnd;
-                // Tap Event
-                wordEl.onclick = handleWordClick;
-
-                wordBankContainer.appendChild(wordEl);
-            });
+            document.getElementById('word-bank').innerHTML = bankHtml;
         }
 
         // ==========================================
-        // INTERACTION: TAP TO MOVE (For Touch/Click)
+        // DRAG, DROP & TAP INTERACTIONS
         // ==========================================
-        
-        function handleWordClick(event) {
+
+        function dragStart(e) {
             if (state.gameState !== 'playing') return;
-            event.stopPropagation(); // Prevent triggering bank/zone clicks
-            
-            const wordEl = event.currentTarget;
-            if (wordEl.classList.contains('locked')) return;
-
-            // If a word is already selected, deselect it
-            if (state.selectedWordId === wordEl.id) {
-                deselectWord();
-                return;
-            }
-
-            // Select this word
+            e.dataTransfer.setData('text/plain', e.target.id);
+            setTimeout(() => e.target.style.opacity = '0.5', 0);
             deselectWord();
-            state.selectedWordId = wordEl.id;
-            wordEl.classList.add('selected-for-tap');
+        }
 
-            // If it's already in a drop zone, clicking it puts it back to the bank (convenience)
-            if (wordEl.parentElement.classList.contains('drop-zone')) {
-                document.getElementById('word-bank').appendChild(wordEl);
-                deselectWord();
+        function dragEnd(e) {
+            e.target.style.opacity = '1';
+        }
+
+        function allowDrop(e) { e.preventDefault(); }
+
+        function dragEnter(e) {
+            e.preventDefault();
+            if (e.target.classList.contains('drop-zone') && !e.target.classList.contains('correct-drop')) {
+                e.target.classList.add('active-target');
             }
         }
 
-        function handleZoneClick(event) {
-            if (state.gameState !== 'playing') return;
-            const zone = event.currentTarget;
+        function dragLeave(e) {
+            e.target.classList.remove('active-target');
+        }
 
-            // If a word is selected, move it to this zone
+        function dropZone(e) {
+            e.preventDefault();
+            e.target.classList.remove('active-target');
+            if (state.gameState !== 'playing' || e.target.classList.contains('correct-drop')) return;
+            const wordId = e.dataTransfer.getData('text/plain');
+            placeWordInZone(wordId, e.target);
+        }
+
+        function handleWordClick(e) {
+            if (state.gameState !== 'playing') return;
+            if (e.target.classList.contains('used')) return;
+
+            if (state.selectedWordId === e.target.id) {
+                deselectWord();
+            } else {
+                deselectWord();
+                state.selectedWordId = e.target.id;
+                e.target.classList.add('selected');
+            }
+        }
+
+        function handleZoneClick(e) {
+            if (state.gameState !== 'playing') return;
+            const zone = e.target.closest('.drop-zone');
+            if (!zone || zone.classList.contains('correct-drop')) return;
+
             if (state.selectedWordId) {
-                const wordEl = document.getElementById(state.selectedWordId);
-                
-                // If zone is occupied, eject the current occupant to the bank
-                if (zone.children.length > 0) {
-                    document.getElementById('word-bank').appendChild(zone.children[0]);
-                }
-                
-                zone.appendChild(wordEl);
+                placeWordInZone(state.selectedWordId, zone);
                 deselectWord();
-            } else if (zone.children.length > 0 && !zone.children[0].classList.contains('locked')) {
-                // If no word selected but clicking occupied zone, eject the word
-                document.getElementById('word-bank').appendChild(zone.children[0]);
+            } else if (zone.children.length > 0) {
+                const wordEl = zone.children[0];
+                document.getElementById('word-bank').appendChild(wordEl);
+                wordEl.classList.remove('used');
             }
         }
 
-        function handleBankClick(event) {
-            if (state.gameState !== 'playing') return;
-            
-            // If clicking the bank area with a selected word, move it to the bank
-            if (state.selectedWordId && event.target.id === 'word-bank') {
-                const wordEl = document.getElementById(state.selectedWordId);
-                document.getElementById('word-bank').appendChild(wordEl);
-                deselectWord();
+        function placeWordInZone(wordId, zone) {
+            const wordEl = document.getElementById(wordId);
+            if (!wordEl) return;
+
+            if (zone.children.length > 0) {
+                const existingWord = zone.children[0];
+                document.getElementById('word-bank').appendChild(existingWord);
+                existingWord.classList.remove('used');
             }
+
+            zone.appendChild(wordEl);
+            wordEl.classList.add('used');
+            wordEl.classList.remove('selected');
         }
 
         function deselectWord() {
             if (state.selectedWordId) {
                 const el = document.getElementById(state.selectedWordId);
-                if (el) el.classList.remove('selected-for-tap');
+                if(el) el.classList.remove('selected');
                 state.selectedWordId = null;
             }
         }
 
         // ==========================================
-        // INTERACTION: DRAG AND DROP (For Mouse)
-        // ==========================================
-        
-        let draggedId = null;
-
-        function handleDragStart(event) {
-            if (state.gameState !== 'playing') {
-                event.preventDefault();
-                return;
-            }
-            if (event.target.classList.contains('locked')) {
-                event.preventDefault();
-                return;
-            }
-            
-            deselectWord(); // Clear tap-selections if dragging starts
-            draggedId = event.target.id;
-            event.dataTransfer.setData("text/plain", event.target.id);
-            event.dataTransfer.effectAllowed = "move";
-            setTimeout(() => event.target.style.opacity = '0.5', 0);
-        }
-
-        function handleDragEnd(event) {
-            event.target.style.opacity = '1';
-            draggedId = null;
-            document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active-target'));
-        }
-
-        function allowDrop(event) {
-            event.preventDefault();
-        }
-
-        function dragEnter(event) {
-            event.preventDefault();
-            if(event.currentTarget.classList.contains('drop-zone')) {
-                event.currentTarget.classList.add('active-target');
-            }
-        }
-
-        function dragLeave(event) {
-            if(event.currentTarget.classList.contains('drop-zone')) {
-                event.currentTarget.classList.remove('active-target');
-            }
-        }
-
-        function dropZone(event) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('active-target');
-            const data = event.dataTransfer.getData("text/plain") || draggedId;
-            if (!data) return;
-
-            const wordEl = document.getElementById(data);
-            const targetZone = event.currentTarget;
-
-            // If dropping on a child element (another word) inside the zone
-            if (targetZone.classList.contains('drop-zone')) {
-                if (targetZone.children.length > 0) {
-                    // Send existing word back to bank
-                    document.getElementById('word-bank').appendChild(targetZone.children[0]);
-                }
-                targetZone.appendChild(wordEl);
-            }
-        }
-
-        function dropBank(event) {
-            event.preventDefault();
-            const data = event.dataTransfer.getData("text/plain") || draggedId;
-            if (!data) return;
-            const wordEl = document.getElementById(data);
-            document.getElementById('word-bank').appendChild(wordEl);
-        }
-
-        // ==========================================
-        // GAME LOGIC & VALIDATION
+        // GAME LOGIC
         // ==========================================
 
         function checkAnswers() {
@@ -588,17 +507,21 @@
                     allFilled = false;
                 } else {
                     const wordEl = zone.children[0];
-                    const droppedWord = wordEl.textContent.trim().toLowerCase(); // Normalize for safety
+                    const droppedWord = wordEl.textContent.trim().toLowerCase(); 
                     const expectedWord = state.answers[zone.dataset.index];
                     
                     if (droppedWord === expectedWord) {
                         correctCount++;
-                        // Lock correct words
+                        zone.classList.add('correct-drop');
                         wordEl.draggable = false;
-                        wordEl.classList.add('locked');
-                        zone.style.borderBottomColor = 'transparent'; // hide underline when correct
+                        wordEl.onclick = null;
+                        wordEl.style.backgroundColor = 'transparent';
+                        wordEl.style.border = 'none';
+                        wordEl.style.boxShadow = 'none';
+                        wordEl.style.padding = '0';
+                        wordEl.style.margin = '0';
                     } else {
-                        incorrectWords.push(wordEl);
+                        incorrectWords.push({wordEl, zone});
                     }
                 }
             });
@@ -614,15 +537,19 @@
                 handleWin();
             } else {
                 state.triesLeft--;
+                updateHearts();
                 
-                // Return incorrect words to bank
-                incorrectWords.forEach(word => {
-                    document.getElementById('word-bank').appendChild(word);
+                incorrectWords.forEach(({wordEl, zone}) => {
+                    zone.classList.add('border-rose-500', 'bg-rose-50');
+                    setTimeout(() => {
+                        zone.classList.remove('border-rose-500', 'bg-rose-50');
+                        document.getElementById('word-bank').appendChild(wordEl);
+                        wordEl.classList.remove('used');
+                    }, 800);
                 });
 
                 if (state.triesLeft > 0) {
-                    updateTriesUI();
-                    showMessage(`Not quite! You have ${state.triesLeft} ${state.triesLeft === 1 ? 'try' : 'tries'} left.`, "error");
+                    showMessage("Not quite! Try again.", "warning");
                 } else {
                     handleLose();
                 }
@@ -635,94 +562,76 @@
             if (state.triesLeft === 3) medalType = 'Gold';
             if (state.triesLeft === 2) medalType = 'Silver';
             
-            saveHistory(medalType);
+            saveToLocalHistory(medalType);
             showMedal(medalType);
         }
 
         function handleLose() {
             state.gameState = 'lost';
-            updateTriesUI();
-            showMessage("Out of tries! Here are the correct answers.", "error");
             document.getElementById('btn-check').style.display = 'none';
             
-            // Show correct answers
             const zones = document.querySelectorAll('.drop-zone');
             zones.forEach(zone => {
-                if (zone.children.length === 0 || !zone.children[0].classList.contains('locked')) {
-                    const correctWord = state.answers[zone.dataset.index];
-                    zone.innerHTML = `<span class="inline-flex items-center justify-center px-3 py-1 bg-red-100 border-2 border-red-300 text-red-800 font-bold rounded-lg">${correctWord}</span>`;
-                    zone.style.borderBottomColor = 'transparent';
+                if (!zone.classList.contains('correct-drop')) {
+                    const correctWordText = state.answers[zone.dataset.index];
+                    zone.innerHTML = `<span class="text-rose-600 font-bold px-2">${correctWordText}</span>`;
+                    zone.style.borderBottomColor = '#f43f5e';
+                    zone.style.backgroundColor = '#fff1f2';
                 }
             });
-            document.getElementById('word-bank').innerHTML = ''; // Clear bank
-        }
-
-        // ==========================================
-        // UI HELPERS
-        // ==========================================
-
-        function updateTriesUI() {
-            const container = document.getElementById('tries-container');
-            // Heart SVG
-            const heartFull = `<svg class="w-6 h-6 text-rose-500" fill="currentColor" viewBox="0 0 256 256"><path d="M240,98a57.63,57.63,0,0,1-17,41L133.7,229.62a8,8,0,0,1-11.4,0L33,139a58,58,0,0,1,82-82.1L128,69.05l13-12.15A58,58,0,0,1,240,98Z"></path></svg>`;
-            const heartEmpty = `<svg class="w-6 h-6 text-slate-200" fill="currentColor" viewBox="0 0 256 256"><path d="M128,224a8,8,0,0,1-5.66-2.34l-89.31-89.31a56,56,0,1,1,79.2-79.2L128,68.83l15.77-15.68a56,56,0,1,1,79.2,79.2l-89.31,89.31A8,8,0,0,1,128,224Zm-48-152a40,40,0,0,0-28.28,68.28L128,216.57l76.28-76.29A40,40,0,1,0,147.72,83.71l-14.06,14a16,16,0,0,1-22.62,0l-14.06-14A39.88,39.88,0,0,0,80,72Z"></path></svg>`;
             
-            let html = '<span class="font-bold text-slate-500 mr-2">Tries:</span>';
-            for (let i = 0; i < CONFIG.maxTries; i++) {
-                html += (i < state.triesLeft) ? heartFull : heartEmpty;
-            }
-            container.innerHTML = html;
+            document.getElementById('word-bank').innerHTML = '';
+            setTimeout(() => { startNewGame(); }, 3000);
         }
 
-        function showMessage(text, type) {
-            const msgEl = document.getElementById('message-area');
-            if (type === 'hidden') {
+        function updateHearts() {
+            const container = document.getElementById('hearts-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < state.triesLeft) {
+                    container.innerHTML += `<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+                } else {
+                    container.innerHTML += `<svg class="w-8 h-8 text-slate-200" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+                }
+            }
+            document.getElementById('progress-bar').style.width = `${(state.triesLeft / CONFIG.maxTries) * 100}%`;
+        }
+
+        function showMessage(msg, type) {
+            const oldMsg = document.getElementById('game-msg');
+            if (oldMsg) oldMsg.remove();
+
+            const msgEl = document.createElement('div');
+            msgEl.id = 'game-msg';
+            const colors = type === 'error' ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white';
+            msgEl.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl font-bold shadow-lg z-50 transition-opacity duration-300 ${colors}`;
+            msgEl.innerText = msg;
+            
+            document.body.appendChild(msgEl);
+            setTimeout(() => {
                 msgEl.style.opacity = '0';
-                return;
-            }
-            msgEl.textContent = text;
-            msgEl.className = `text-lg font-bold transition-opacity duration-300 opacity-100 ${type === 'error' ? 'text-rose-500' : 'text-emerald-600'}`;
-            
-            // Clear message after 3 seconds if it's just a warning
-            if(type === 'error' && state.triesLeft > 0) {
-                setTimeout(() => {
-                    if (state.gameState === 'playing') msgEl.style.opacity = '0';
-                }, 3000);
-            }
+                setTimeout(() => msgEl.remove(), 300);
+            }, 2500);
         }
+
+        // ==========================================
+        // UI OVERLAYS & HISTORY MODAL
+        // ==========================================
 
         function showMedal(type) {
             const overlay = document.getElementById('medal-overlay');
-            const iconContainer = document.getElementById('medal-icon');
-            const title = document.getElementById('medal-title');
-            const desc = document.getElementById('medal-desc');
-
-            let color, strokeColor;
+            const iconDiv = document.getElementById('medal-icon');
+            
+            let svg = '';
             if (type === 'Gold') {
-                color = '#FBBF24'; strokeColor = '#B45309';
-                title.textContent = 'Perfect!';
-                desc.textContent = 'You earned a Gold Medal for getting it right on the first try!';
+                svg = `<svg viewBox="0 0 256 256" fill="currentColor" class="text-amber-400 w-full h-full"><path d="M128,16a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,16Zm0,176a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,192Z"></path><path d="M128,48a64,64,0,1,0,64,64A64.07,64.07,0,0,0,128,48Zm0,112a48,48,0,1,1,48-48A48.05,48.05,0,0,1,128,160Z"></path><polygon points="120 120 104 104 128 80 152 104 136 120 136 136 120 136 120 120"></polygon></svg>`;
             } else if (type === 'Silver') {
-                color = '#CBD5E1'; strokeColor = '#475569';
-                title.textContent = 'Great Job!';
-                desc.textContent = 'You earned a Silver Medal for completing the story!';
+                svg = `<svg viewBox="0 0 256 256" fill="currentColor" class="text-slate-300 w-full h-full"><path d="M128,16a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,16Zm0,176a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,192Z"></path><path d="M128,48a64,64,0,1,0,64,64A64.07,64.07,0,0,0,128,48Zm0,112a48,48,0,1,1,48-48A48.05,48.05,0,0,1,128,160Z"></path><polygon points="120 120 104 104 128 80 152 104 136 120 136 136 120 136 120 120"></polygon></svg>`;
             } else {
-                color = '#D97706'; strokeColor = '#78350F';
-                title.textContent = 'Good Work!';
-                desc.textContent = 'You earned a Bronze Medal for your perseverance!';
+                svg = `<svg viewBox="0 0 256 256" fill="currentColor" class="text-orange-700 w-full h-full"><path d="M128,16a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,16Zm0,176a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,192Z"></path><path d="M128,48a64,64,0,1,0,64,64A64.07,64.07,0,0,0,128,48Zm0,112a48,48,0,1,1,48-48A48.05,48.05,0,0,1,128,160Z"></path><polygon points="120 120 104 104 128 80 152 104 136 120 136 136 120 136 120 120"></polygon></svg>`;
             }
-
-            // Simple Medal SVG
-            iconContainer.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="${color}" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full medal-animate">
-                    <circle cx="12" cy="14" r="6"></circle>
-                    <path d="M12 14l1.5-1.5M12 14l-1.5-1.5M12 14v2.5M12 14l-1.5 1.5M12 14l1.5 1.5"></path>
-                    <path d="M8 8l-3-5h14l-3 5"></path>
-                    <path d="M12 8L9.5 3"></path>
-                    <path d="M12 8l2.5-5"></path>
-                </svg>
-            `;
-
+            
+            iconDiv.innerHTML = svg;
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
         }
@@ -734,20 +643,15 @@
         }
 
         // ==========================================
-        // HISTORY & LOCALSTORAGE LOGIC
+        // BATCH SUBMISSION TO GOOGLE SHEETS
         // ==========================================
         
-        function saveHistory(medalType) {
+        function saveToLocalHistory(medalType) {
             try {
                 const history = JSON.parse(localStorage.getItem('storyWeaverHistory') || '[]');
-                
-                // Get the first 6 words of the paragraph to form a snippet
                 const snippet = state.currentParagraph.split(/\s+/).slice(0, 6).join(' ') + '...';
-                
                 const levelSelect = document.getElementById('level-select');
                 const levelName = levelSelect.options[levelSelect.selectedIndex].text;
-                
-                // Calculate paragraph metrics
                 const paraLength = state.currentParagraph.length;
                 const numBlanks = Object.keys(state.answers).length;
                 
@@ -760,12 +664,69 @@
                     blanks: numBlanks
                 });
                 
-                // Cap history size to 50 records
                 if(history.length > 50) history.pop();
-                
                 localStorage.setItem('storyWeaverHistory', JSON.stringify(history));
+                
+                // Note: We no longer auto-sync here! It waits for the Submit button.
             } catch(e) {
                 console.warn("Could not save history to localStorage", e);
+            }
+        }
+
+        async function submitScores() {
+            if (!CONFIG.scriptUrl || CONFIG.scriptUrl === "YOUR_GOOGLE_SCRIPT_URL_HERE") {
+                alert("Teacher Setup Required: Please add your Google Web App URL to the code.");
+                return;
+            }
+
+            const history = JSON.parse(localStorage.getItem('storyWeaverHistory') || '[]');
+            if (history.length === 0) {
+                alert("You don't have any completed stories to submit yet! Go play some levels.");
+                return;
+            }
+
+            // Prompt student for their name
+            const studentName = prompt("Awesome job! Please enter your first and last name to submit your scores to the teacher:");
+            
+            if (!studentName || studentName.trim() === "") {
+                return; // They cancelled or left it blank
+            }
+
+            const btn = document.getElementById('btn-submit-scores');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Sending...";
+            btn.disabled = true;
+
+            const payload = {
+                appName: "StoryWeaver",
+                studentName: studentName.trim(),
+                history: history // Send the entire array of scores
+            };
+
+            try {
+                await fetch(CONFIG.scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+                
+                // Because of 'no-cors' we won't see the exact response, so we assume success if no network error
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    
+                    if (confirm(`Success! Your scores have been sent to the teacher.\n\nWould you like to clear your reading history and start fresh?`)) {
+                        localStorage.removeItem('storyWeaverHistory');
+                        renderHistory();
+                    }
+                }, 800);
+
+            } catch (err) {
+                console.error("Could not sync to Google Sheets:", err);
+                alert("There was a network problem submitting your scores. Please check your internet connection and try again.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
@@ -825,18 +786,16 @@
             }
         }
 
-        // Utility: Fisher-Yates array shuffle
         function shuffleArray(array) {
-            let curId = array.length;
-            while (0 !== curId) {
-                let randId = Math.floor(Math.random() * curId);
-                curId -= 1;
-                let tmp = array[curId];
-                array[curId] = array[randId];
-                array[randId] = tmp;
+            let currentIndex = array.length,  randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
             }
             return array;
         }
+
     </script>
 </body>
 </html>
