@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story Weaver | ELA Reading Game</title>
-     <!-- version 1 -->
-
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts for a friendly, readable look -->
@@ -198,13 +196,29 @@
         // CONFIGURATION & STATE
         // ==========================================
         const CONFIG = {
-            minParagraphLength: 100,
             minWordLength: 5,   // Only extract words with 5 or more letters
-            wordsToRemove: 5,   // How many blanks to create
-            maxTries: 3
+            maxTries: 3,
+            levels: {
+                level1: {
+                    minParagraphLength: 100,
+                    maxParagraphLength: 350,
+                    wordsToRemove: 3
+                },
+                level2: {
+                    minParagraphLength: 200,
+                    maxParagraphLength: 600,
+                    wordsToRemove: 5
+                },
+                level3: {
+                    minParagraphLength: 400,
+                    maxParagraphLength: 1200,
+                    wordsToRemove: 7
+                }
+            }
         };
 
         let state = {
+            currentLevelId: 'level1', // Tracks current active level ID
             currentParagraph: "", // Store the active paragraph text
             answers: {},        // Stores { index: "correct_word" }
             triesLeft: 3,
@@ -244,6 +258,7 @@
             document.getElementById('btn-check').style.display = 'block';
 
             const level = document.getElementById('level-select').value;
+            state.currentLevelId = level; // Store active level id
             let rawText = "";
 
             try {
@@ -273,6 +288,8 @@
         // ==========================================
         
         function processText(text) {
+            const levelConfig = CONFIG.levels[state.currentLevelId];
+
             // 1. Remove hidden BOM and zero-width characters
             let cleanText = text.replace(/[\uFEFF\u200B]/g, '');
 
@@ -283,8 +300,8 @@
             
             // 3. Filter valid paragraphs strictly
             const validParagraphs = rawParagraphs.filter(p => {
-                // Rule A: Long enough
-                if (p.length < CONFIG.minParagraphLength) return false;
+                // Rule A: Length within configured bounds for this level
+                if (p.length < levelConfig.minParagraphLength || p.length > levelConfig.maxParagraphLength) return false;
                 
                 // Rule B: Starts with a capital letter (find the first actual letter to bypass quotes/spaces)
                 const firstLetter = p.match(/[a-zA-Z]/);
@@ -302,7 +319,7 @@
                     }
                 });
                 
-                return uniqueLongWords.size >= CONFIG.wordsToRemove;
+                return uniqueLongWords.size >= levelConfig.wordsToRemove;
             });
 
             if (validParagraphs.length === 0) {
@@ -311,10 +328,10 @@
                         <p class="text-rose-600 font-extrabold text-2xl mb-2">Oops! Couldn't find a valid paragraph.</p>
                         <p class="text-slate-600 text-lg mb-4">The text file loaded, but no paragraphs met the game's strict criteria.</p>
                         <ul class="text-slate-500 text-sm text-left list-disc list-inside bg-white p-4 rounded-xl border border-rose-100">
-                            <li>Must be at least ${CONFIG.minParagraphLength} characters long.</li>
+                            <li>Must be between ${levelConfig.minParagraphLength} and ${levelConfig.maxParagraphLength} characters long.</li>
                             <li>Must start with a capital letter.</li>
                             <li>Must end with a period, question mark, or exclamation point.</li>
-                            <li>Must contain at least ${CONFIG.wordsToRemove} unique words that are ${CONFIG.minWordLength}+ letters long.</li>
+                            <li>Must contain at least ${levelConfig.wordsToRemove} unique words that are ${CONFIG.minWordLength}+ letters long.</li>
                         </ul>
                     </div>`;
                 return;
@@ -328,6 +345,7 @@
 
         function buildGameEngine(paragraph) {
             state.currentParagraph = paragraph;
+            const levelConfig = CONFIG.levels[state.currentLevelId];
             
             // Smart tokenization: keeps punctuation separate from words
             // (\b[a-zA-Z]+\b) captures words, the rest is split nicely
@@ -355,11 +373,11 @@
                     selectedWordsLower.add(wordLower);
                 }
                 
-                if (selectedIndices.length === CONFIG.wordsToRemove) break;
+                if (selectedIndices.length === levelConfig.wordsToRemove) break;
             }
 
             // Fallback safety (should rarely hit now due to processText filtering)
-            if (selectedIndices.length < CONFIG.wordsToRemove) {
+            if (selectedIndices.length < levelConfig.wordsToRemove) {
                 document.getElementById('story-container').innerHTML = `<p class="text-rose-500 text-center font-bold">Error generating blanks. Try skipping.</p>`;
                 return;
             }
@@ -590,7 +608,9 @@
                 return;
             }
 
-            if (correctCount === CONFIG.wordsToRemove) {
+            const levelConfig = CONFIG.levels[state.currentLevelId];
+
+            if (correctCount === levelConfig.wordsToRemove) {
                 handleWin();
             } else {
                 state.triesLeft--;
@@ -727,11 +747,17 @@
                 const levelSelect = document.getElementById('level-select');
                 const levelName = levelSelect.options[levelSelect.selectedIndex].text;
                 
+                // Calculate paragraph metrics
+                const paraLength = state.currentParagraph.length;
+                const numBlanks = Object.keys(state.answers).length;
+                
                 history.unshift({
                     level: levelName,
                     snippet: snippet,
                     score: medalType,
-                    date: new Date().toLocaleDateString()
+                    date: new Date().toLocaleDateString(),
+                    length: paraLength,
+                    blanks: numBlanks
                 });
                 
                 // Cap history size to 50 records
@@ -770,12 +796,16 @@
                                        item.score === 'Silver' ? 'text-slate-600 bg-slate-50 border-slate-300' : 
                                        'text-orange-800 bg-orange-50 border-orange-300';
                     
+                    const lengthText = item.length ? `${item.length} chars` : '';
+                    const blanksText = item.blanks ? `${item.blanks} blanks` : '';
+                    const statsHtml = [item.level, item.date, lengthText, blanksText].filter(Boolean).join(' &bull; ');
+                    
                     const el = document.createElement('div');
                     el.className = 'flex items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors rounded-lg mb-2';
                     el.innerHTML = `
                         <div class="flex-1 min-w-0 pr-4">
                             <p class="font-bold text-slate-700 truncate text-lg">${item.snippet}</p>
-                            <p class="text-sm text-slate-500 font-semibold">${item.level} &bull; ${item.date}</p>
+                            <p class="text-sm text-slate-500 font-semibold">${statsHtml}</p>
                         </div>
                         <div class="px-4 py-1.5 rounded-full border-2 ${scoreColor} font-extrabold text-sm shadow-sm">
                             ${item.score}
