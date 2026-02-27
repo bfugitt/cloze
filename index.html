@@ -211,7 +211,7 @@
         // ==========================================
         const CONFIG = {
             // STEP 1: Paste your Google Web App URL here!
-            scriptUrl: "https://script.google.com/macros/s/AKfycbzHAPIPZizqf2sCo1HAaDMdcXcG265I55yORB_-p6By6xoGmZoJLe_jc-Pna0YbDrUh/exec", 
+            scriptUrl: "YOUR_GOOGLE_SCRIPT_URL_HERE", 
             
             minWordLength: 5,   
             maxTries: 3,
@@ -716,10 +716,11 @@
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                     
-                    if (confirm(`Success! Your scores have been sent to the teacher.\n\nWould you like to clear your reading history and start fresh?`)) {
-                        localStorage.removeItem('storyWeaverHistory');
-                        renderHistory();
-                    }
+                    // Alert the student and automatically clear the history for a new session
+                    alert("Success! Your scores have been sent to the teacher. Your history is now cleared for a new session.");
+                    localStorage.removeItem('storyWeaverHistory');
+                    renderHistory();
+                    
                 }, 800);
 
             } catch (err) {
